@@ -412,8 +412,9 @@ function setNW(n,b){snw=n;document.querySelectorAll('#wk-btns .tp').forEach(x=>x
 
 async function startGame(){
   se('start-msg','⏳ Loading session...');
-  let g=await fbGet();
-  if(!g){se('start-msg','❌ Firebase error — retry');return;}
+  let g=null;
+  for(let i=0;i<3;i++){g=await fbGet();if(g)break;await new Promise(r=>setTimeout(r,1000));}
+  if(!g){se('start-msg','❌ Firebase error — please retry');return;}
   const connected=ROLES.filter(r=>g.players?.[r]).length;
   if(connected===0){se('start-msg','⚠ No players connected yet!');return;}
   const d=parseInt(document.getElementById('init-demand').value)||4;
