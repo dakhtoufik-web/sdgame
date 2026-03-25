@@ -158,7 +158,24 @@ body{background:var(--bg);color:var(--text);font-family:var(--head);min-height:1
 
 <!-- PLAYER -->
 <div class="screen" id="s-player">
-  <div id="flag-banner" class="flag flag-wait" style="margin-top:16px;">🟡 &nbsp; WAITING FOR INSTRUCTOR...</div>
+  <!-- WEEK + TIMER banner visible to all players -->
+  <div id="player-week-bar" style="display:flex;align-items:center;justify-content:center;gap:18px;background:#0c4a6e;border:1px solid var(--accent);border-radius:8px;padding:10px 20px;margin-top:12px;margin-bottom:6px;">
+    <div style="text-align:center;">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Week</div>
+      <div id="player-week-num" style="font-family:var(--mono);font-size:26px;font-weight:700;color:var(--accent);">—</div>
+    </div>
+    <div style="width:1px;height:36px;background:var(--brd);"></div>
+    <div style="text-align:center;">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Time remaining</div>
+      <div id="player-timer" style="font-family:var(--mono);font-size:26px;font-weight:700;color:var(--yellow);">--:--</div>
+    </div>
+    <div style="width:1px;height:36px;background:var(--brd);"></div>
+    <div style="text-align:center;">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;">Total weeks</div>
+      <div id="player-week-total" style="font-family:var(--mono);font-size:26px;font-weight:700;color:var(--muted);">—</div>
+    </div>
+  </div>
+  <div id="flag-banner" class="flag flag-wait" style="margin-top:10px;">🟡 &nbsp; WAITING FOR INSTRUCTOR...</div>
   <div id="station-wrap"></div>
   <div class="op">
     <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">
@@ -491,6 +508,13 @@ function renderFlag(flag){
 function renderStation(){
   if(!gs||!role||role==='instructor')return;
   const st2=gs.stages[role];const c=RC[role];
+  // Update week/timer banner
+  const pw=document.getElementById('player-week-num');
+  const pt=document.getElementById('player-timer');
+  const ptot=document.getElementById('player-week-total');
+  if(pw) pw.textContent=gs.week||'—';
+  if(ptot) ptot.textContent=gs.nw===99?'∞':(gs.nw||'—');
+  if(pt){const ms=wms(gs);pt.textContent=fm(ms);pt.style.color=gs.paused?'var(--muted)':ms<30000?'var(--red)':'var(--yellow)';}
   const ordered=ho(role);
   const ls=st2.hist?.length?st2.hist[st2.hist.length-1].shp:'—';
   renderFlag(gs.flag||'stop');
@@ -624,6 +648,17 @@ function route(g){
 }
 
 function startPoll(){if(pid)clearInterval(pid);poll();pid=setInterval(poll,2000);}
+// Live timer tick every second for player banner
+setInterval(()=>{
+  const pt=document.getElementById('player-timer');
+  if(!pt||!gs||gs.phase==='ended')return;
+  const ms=wms(gs);
+  pt.textContent=fm(ms);
+  pt.style.color=gs.paused?'var(--muted)':ms<30000?'var(--red)':'var(--yellow)';
+  // Also keep header timer in sync
+  const ht=document.getElementById('hdr-timer');
+  if(ht&&ht.style.display!=='none'){ht.textContent=fm(ms);ht.style.color=pt.style.color;}
+},1000);
 async function poll(){
   const g=await fbGet();
   if(!g||g._error)return; // null=empty session, _error=network issue, skip
