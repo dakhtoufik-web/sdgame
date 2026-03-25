@@ -257,6 +257,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--head);min-height:1
           <span style="font-size:12px;color:var(--muted);">units for next week</span>
         </div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px;" id="i-orders">Orders: 0/4 ⌛</div>
+        <button class="btn btn-d" id="btn-stop" onclick="stopOrders()" style="font-size:14px;padding:10px 20px;width:100%;margin-bottom:8px;">🔴 STOP — Lock orders</button>
         <button class="btn btn-s" id="btn-adv" onclick="advanceWeek()" style="font-size:16px;padding:14px 28px;width:100%;">
           ▶ Validate &amp; Start Week <span id="i-nw">2</span>
         </button>
@@ -457,12 +458,14 @@ async function togglePause(){
   await fbSet(g);
 }
 async function addSec(s){let g=await fbGet();if(!g)return;if(g.paused)g.wpause=(g.wpause||0)+s*1000;else g.wend=(g.wend||Date.now())+s*1000;await fbSet(g);}
-async function advanceWeek(){
-  let g=await fbGet();if(!g)return;
-  g.flag='stop';await fbSet(g);
-  const d=parseInt(document.getElementById('i-demand').value)||0;
-  const ng=processWeek(g,d);await fbSet(ng);renderInst();
-}
+async function stopOrders(){let g=await fbGet();if(!g)return;g.flag="stop";await fbSet(g);renderInst();}
+async function advanceWeek(){let g=await fbGet();if(!g)return;const d=parseInt(document.getElementById("i-demand").value)||0;const ng=processWeek(g,d);await fbSet(ng);renderInst();}
+
+
+
+
+
+
 async function endSession(){if(!confirm('End the session?'))return;let g=await fbGet();if(!g)return;g.phase='ended';g.flag='stop';await fbSet(g);renderInst();}
 async function resetSession(){
   if(!confirm('Reset all session data?'))return;
@@ -709,3 +712,4 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&role&&role!=='instru
 </script>
 </body>
 </html>
+
