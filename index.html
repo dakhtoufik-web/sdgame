@@ -890,13 +890,18 @@ function updatePlayerEwma() {
 function togglePlayerEwmaPanel() {
   const box = document.getElementById('player-ewma-box');
   if (!box) return;
+  box.style.display = 'block';
   const hist = gs?.stages?.[role]?.hist || [];
-  box.style.display = hist.length > 0 ? 'block' : 'none';
-  if (hist.length > 0) updatePlayerEwma();
+  if (hist.length > 0) {
+    updatePlayerEwma();
+  } else {
+    document.getElementById('player-ewma-val').textContent = '—';
+    document.getElementById('player-last-demand').textContent = '—';
+    document.getElementById('player-ewma-hint').textContent = "Disponible des la semaine 2 - jouez W1 d'abord";
+  }
 }
 
 
 </script>
 </body>
 </html>
-
