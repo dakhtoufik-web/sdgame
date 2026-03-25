@@ -327,6 +327,7 @@ let bwOn=false,bwPrev='s-entry',bwBar=null,bwLine=null;
 async function fbGet(){try{const r=await fetch(FB+'?t='+Date.now());return r.ok?await r.json():null;}catch{return null;}}
 async function fbSet(s){try{gs=s;await fetch(FB,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(s)});return true;}catch{return false;}}
 async function fbDel(){try{await fetch(FB,{method:'DELETE'});}catch{}}
+async function fbWrite(path,val){try{await fetch(FB.replace('session.json','session/'+path+'.json'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(val)});return true;}catch{return false;}}
 
 function mkStage(){return{inventory:12,backlog:0,p0:4,p1:4,inOrd:0,order:NO,cost:0,hist:[]};}
 function mkGame(){return{week:1,phase:'waiting',wdur:sdur,nw:snw,wend:0,wpause:0,paused:false,flag:'stop',
@@ -381,10 +382,14 @@ function pslot(r){const n=gs?.players?.[r]||'';const c=RC[r];const ok=!!n;
 async function joinAs(r){
   const n=document.getElementById('inp-name').value.trim();
   if(!n){st('entry-msg','⚠ Please enter your name first.');return;}
-  let g=await fbGet()||mkGame();
-  if(g.phase!=='waiting'){st('entry-msg','⚠ Session already in progress.');return;}
-  if(g.players[r]){st('entry-msg',`⚠ ${RL[r]} is taken by ${g.players[r]}.`);return;}
-  g.players[r]=n;await fbSet(g);
+  let g=await fbGet();
+  if(!g){g=mkGame();g.players[r]=n;await fbSet(g);}
+  else{
+    if(g.phase!=='waiting'){st('entry-msg','⚠ Session already in progress.');return;}
+    if(g.players[r]){st('entry-msg',`⚠ ${RL[r]} is taken by ${g.players[r]}.`);return;}
+    await fbWrite('players/'+r,n);
+    g=await fbGet();if(g)gs=g;
+  }
   role=r;name=n;startPoll();ss('s-wait');renderWait();
 }
 function showPin(){document.getElementById('pin-modal').style.display='flex';document.getElementById('pin-inp').focus();}
@@ -394,7 +399,13 @@ function checkPin(){
     hidePin();role='instructor';name=document.getElementById('inp-name').value.trim()||'Instructor';joinInst();
   }else{se('pin-msg','❌ Wrong PIN');}
 }
-async function joinInst(){let g=await fbGet()||mkGame();g.instructor=name;await fbSet(g);startPoll();ss('s-inst');renderInst();}
+async function joinInst(){
+  let g=await fbGet();
+  if(!g){g=mkGame();await fbSet(g);}
+  await fbWrite('instructor',name);
+  g=await fbGet();if(g)gs=g;
+  startPoll();ss('s-inst');renderInst();
+}
 
 function setDur(m,b){sdur=m;document.querySelectorAll('#dur-btns .tp').forEach(x=>x.classList.remove('ts'));b?.classList.add('ts');st('dur-lbl',`${m} min / week`);}
 function setNW(n,b){snw=n;document.querySelectorAll('#wk-btns .tp').forEach(x=>x.classList.remove('ts'));b?.classList.add('ts');}
