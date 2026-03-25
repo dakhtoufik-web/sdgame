@@ -190,6 +190,26 @@ body{background:var(--bg);color:var(--text);font-family:var(--head);min-height:1
   </div>
   <details style="margin-top:12px;">
     <summary style="cursor:pointer;font-size:11px;color:var(--muted);text-transform:uppercase;">📋 My history</summary>
+    <!-- EWMA player panel -->
+    <div id="player-ewma-box" style="display:none;margin-top:8px;background:var(--surf2);border:1px solid #2d9cff44;border-radius:8px;padding:10px 14px;">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">📈 Mon forecast EWMA</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:3px;">α (mon lissage)</div>
+          <input type="range" min="0.05" max="0.95" step="0.05" value="0.3" id="player-alpha" oninput="updatePlayerEwma()" style="width:110px;accent-color:#2d9cff;"/>
+          <span style="font-family:var(--mono);font-size:12px;color:var(--accent);margin-left:6px;" id="player-alpha-lbl">0.30</span>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:10px;color:var(--muted);">Forecast semaine suivante</div>
+          <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--green);" id="player-ewma-val">—</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:10px;color:var(--muted);">Dernière demande reçue</div>
+          <div style="font-family:var(--mono);font-size:22px;font-weight:700;color:var(--yellow);" id="player-last-demand">—</div>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-top:8px;" id="player-ewma-hint"></div>
+    </div>
     <div class="card" style="margin-top:8px;overflow-x:auto;" id="hist-wrap"></div>
   </details>
 </div>
@@ -219,6 +239,37 @@ body{background:var(--bg);color:var(--text);font-family:var(--head);min-height:1
         <input class="di" type="number" id="init-demand" value="4" min="1" max="99"/>
         <span style="font-size:12px;color:var(--muted);">units / week</span>
       </div>
+    </div>
+    <!-- DEMAND MODE -->
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">📈 Demand mode</div>
+      <div style="display:flex;gap:6px;">
+        <button class="tp ts" id="mode-manual" onclick="setDemandMode('manual',this)">✋ Manual</button>
+        <button class="tp" id="mode-ewma" onclick="setDemandMode('ewma',this)">📈 EWMA Auto</button>
+      </div>
+    </div>
+    <div id="ewma-config" style="display:none;margin-bottom:16px;background:var(--surf2);border-radius:8px;padding:12px;border:1px solid #2d9cff44;">
+      <div style="font-size:11px;color:var(--accent);font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:1px;">⚙ Paramètres EWMA</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">α (lissage) — <span id="ewma-alpha-lbl">0.30</span></div>
+          <input type="range" min="0.05" max="0.95" step="0.05" value="0.3" id="ewma-alpha" oninput="updateEwmaPreview()" style="width:100%;accent-color:#2d9cff;"/>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Demande base</div>
+          <input class="di" type="number" id="ewma-base" value="4" min="1" max="99" oninput="updateEwmaPreview()" style="width:100%;"/>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Choc semaine</div>
+          <input class="di" type="number" id="ewma-shock-wk" value="5" min="2" max="20" oninput="updateEwmaPreview()" style="width:100%;"/>
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--muted);margin-bottom:4px;">Amplitude choc</div>
+          <input class="di" type="number" id="ewma-shock-amp" value="8" min="1" max="50" oninput="updateEwmaPreview()" style="width:100%;"/>
+        </div>
+      </div>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;">Scénario demandes (prévisualisé)</div>
+      <div id="ewma-preview" style="font-family:var(--mono);font-size:11px;color:var(--green);background:var(--surf);padding:8px;border-radius:6px;line-height:1.8;"></div>
     </div>
     <div style="margin-bottom:16px;">
       <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">🔄 Number of weeks</div>
@@ -254,7 +305,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--head);min-height:1
         <div class="ict">📦 Demand — Week <span id="i-wk2">1</span></div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
           <input class="di" type="number" id="i-demand" value="4" min="1" max="999"/>
-          <span style="font-size:12px;color:var(--muted);">units for next week</span>
+          <span style="font-size:12px;color:var(--muted);" id="demand-mode-lbl">units for next week</span>
+        </div>
+        <div id="ewma-forecast-box" style="display:none;background:var(--surf2);border-radius:6px;padding:8px 10px;margin-bottom:10px;font-size:11px;font-family:var(--mono);">
+          <span style="color:var(--muted);">EWMA forecast W<span id="ewma-fcast-wk">?</span>: </span>
+          <span style="color:var(--green);font-weight:700;font-size:14px;" id="ewma-fcast-val">—</span>
+          <span style="color:var(--muted);"> u &nbsp;|&nbsp; α=</span><span style="color:var(--accent);" id="ewma-fcast-alpha">—</span>
+          <span style="color:var(--muted);font-size:10px;margin-left:6px;" id="ewma-fcast-hint"></span>
+        </div>
+        <div style="display:none">
         </div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:10px;" id="i-orders">Orders: 0/4 ⌛</div>
         <button class="btn btn-d" id="btn-stop" onclick="stopOrders()" style="font-size:14px;padding:10px 20px;width:100%;margin-bottom:8px;">🔴 STOP — Lock orders</button>
@@ -579,6 +638,8 @@ function renderStation(){
     return`<span class="mc" style="border-color:${c};color:${d?'#fff':'var(--muted)'};background:${d?c:'transparent'}">${RE[r]} ${n} ${d?'✓':'…'}</span>`;
   }).join('');
   se('mini-bar',bar);
+  // Show player EWMA panel
+  togglePlayerEwmaPanel();
   if(st2.hist?.length){
     const rows=[...st2.hist].reverse().map(h=>`<tr><td>W${h.w}</td><td>${h.io}</td><td>+${h.rcv}</td><td>${h.shp}</td><td>${h.inv}</td><td style="color:${h.bkl>0?'var(--red)':'inherit'}">${h.bkl}</td><td>${h.ord}</td><td style="color:var(--yellow)">€${h.cost.toFixed(1)}</td></tr>`).join('');
     se('hist-wrap',`<table class="ht"><thead><tr><th>Wk</th><th>In</th><th>Rcv</th><th>Shp</th><th>Inv</th><th>Bkl</th><th>Ord</th><th>Cost</th></tr></thead><tbody>${rows}</tbody></table>`);
@@ -604,6 +665,8 @@ function renderInst(){
   const w=gs.week||1;
   ['i-wk','i-wk2','i-wk3'].forEach(id=>se(id,w));
   se('i-nw',w+1);
+  // Auto-fill EWMA demand if mode is ewma
+  if(demandMode==='ewma') ewmaAutoFillDemand(w);
   se('btn-pause',gs.paused?'▶ Resume':'⏸ Pause');
   const ms=wms(gs);
   const te=document.getElementById('i-timer');
@@ -709,6 +772,130 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&role&&role!=='instru
   if(Date.now()-(g.created||0)>4*60*60*1000){await fbDel();return;}
   ROLES.forEach(r=>{if(g.players?.[r]){const b=document.querySelector(`[data-role="${r}"]`);if(b){b.disabled=true;b.textContent=`${RE[r]} ${g.players[r]}`;}}});
 })();
+// ══════════════════════════════════════════════
+// EWMA — Demand mode
+// ══════════════════════════════════════════════
+let demandMode = 'manual'; // 'manual' | 'ewma'
+let ewmaState = { F: null }; // running EWMA forecast state
+
+function setDemandMode(mode, btn) {
+  demandMode = mode;
+  document.querySelectorAll('#mode-manual,#mode-ewma').forEach(b => b.classList.remove('ts'));
+  btn.classList.add('ts');
+  const ewmaCfg = document.getElementById('ewma-config');
+  const fcastBox = document.getElementById('ewma-forecast-box');
+  const demandInp = document.getElementById('i-demand');
+  if (mode === 'ewma') {
+    ewmaCfg.style.display = 'block';
+    if (fcastBox) fcastBox.style.display = 'block';
+    if (demandInp) demandInp.disabled = true;
+    updateEwmaPreview();
+  } else {
+    ewmaCfg.style.display = 'none';
+    if (fcastBox) fcastBox.style.display = 'none';
+    if (demandInp) demandInp.disabled = false;
+    document.getElementById('demand-mode-lbl').textContent = 'units for next week';
+  }
+}
+
+function getEwmaParams() {
+  return {
+    alpha: parseFloat(document.getElementById('ewma-alpha')?.value || 0.3),
+    base: parseInt(document.getElementById('ewma-base')?.value || 4),
+    shockWk: parseInt(document.getElementById('ewma-shock-wk')?.value || 5),
+    shockAmp: parseInt(document.getElementById('ewma-shock-amp')?.value || 8),
+    nw: snw === 99 ? 20 : snw
+  };
+}
+
+function computeEwmaSchedule(params) {
+  const { alpha, base, shockWk, shockAmp, nw } = params;
+  const actual = [];
+  for (let i = 1; i <= nw; i++) {
+    actual.push(i >= shockWk ? base + shockAmp : base);
+  }
+  const forecast = [actual[0]];
+  let F = actual[0];
+  for (let i = 1; i < nw; i++) {
+    F = alpha * actual[i - 1] + (1 - alpha) * F;
+    forecast.push(parseFloat(F.toFixed(1)));
+  }
+  return { actual, forecast };
+}
+
+function updateEwmaPreview() {
+  const params = getEwmaParams();
+  document.getElementById('ewma-alpha-lbl').textContent = params.alpha.toFixed(2);
+  const { actual, forecast } = computeEwmaSchedule(params);
+  const rows = actual.map((d, i) => {
+    const f = forecast[i];
+    const tag = i + 1 >= params.shockWk ? '🔴' : '🟢';
+    return `W${i+1}: D=${d} F≈${f.toFixed(1)} ${tag}`;
+  });
+  const prev = document.getElementById('ewma-preview');
+  if (prev) prev.innerHTML = rows.join('<br>');
+}
+
+function ewmaAutoFillDemand(week) {
+  if (demandMode !== 'ewma') return;
+  const params = getEwmaParams();
+  const { actual, forecast } = computeEwmaSchedule(params);
+  const idx = week - 1;
+  const demand = actual[idx] !== undefined ? actual[idx] : params.base;
+  const fcast = forecast[idx] !== undefined ? forecast[idx] : params.base;
+  const inp = document.getElementById('i-demand');
+  if (inp) { inp.value = demand; inp.disabled = true; }
+  const fbox = document.getElementById('ewma-forecast-box');
+  if (fbox) {
+    fbox.style.display = 'block';
+    const el = document.getElementById('ewma-fcast-val');
+    if (el) el.textContent = fcast.toFixed(1);
+    const wkel = document.getElementById('ewma-fcast-wk');
+    if (wkel) wkel.textContent = week;
+    const alpha_el = document.getElementById('ewma-fcast-alpha');
+    if (alpha_el) alpha_el.textContent = params.alpha.toFixed(2);
+    const hint = document.getElementById('ewma-fcast-hint');
+    if (hint) hint.textContent = week >= params.shockWk ? '⚠ Choc actif' : 'Phase stable';
+    document.getElementById('demand-mode-lbl').textContent = `→ EWMA Auto (W${week})`;
+  }
+}
+
+// ── Player EWMA forecast ──
+function updatePlayerEwma() {
+  if (!gs || !role) return;
+  const alpha = parseFloat(document.getElementById('player-alpha')?.value || 0.3);
+  document.getElementById('player-alpha-lbl').textContent = alpha.toFixed(2);
+  const hist = gs.stages?.[role]?.hist || [];
+  // Use incoming orders (inOrd) as the "demand" the player sees
+  const demands = hist.map(h => h.io || 0);
+  if (demands.length === 0) {
+    document.getElementById('player-ewma-val').textContent = '—';
+    document.getElementById('player-last-demand').textContent = '—';
+    document.getElementById('player-ewma-hint').textContent = 'Pas encore de données';
+    return;
+  }
+  let F = demands[0];
+  for (let i = 1; i < demands.length; i++) {
+    F = alpha * demands[i - 1] + (1 - alpha) * F;
+  }
+  const nextF = alpha * demands[demands.length - 1] + (1 - alpha) * F;
+  const lastD = demands[demands.length - 1];
+  document.getElementById('player-ewma-val').textContent = nextF.toFixed(1);
+  document.getElementById('player-last-demand').textContent = lastD;
+  const trend = nextF > lastD ? '↑ tendance haussière' : nextF < lastD ? '↓ tendance baissière' : '→ stable';
+  document.getElementById('player-ewma-hint').textContent = `Suggestion: commander ~${Math.round(nextF)} u — ${trend}`;
+}
+
+// Show/hide player EWMA panel based on game state
+function togglePlayerEwmaPanel() {
+  const box = document.getElementById('player-ewma-box');
+  if (!box) return;
+  const hist = gs?.stages?.[role]?.hist || [];
+  box.style.display = hist.length > 0 ? 'block' : 'none';
+  if (hist.length > 0) updatePlayerEwma();
+}
+
+
 </script>
 </body>
 </html>
