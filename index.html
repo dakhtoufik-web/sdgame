@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>KEEPLEAN · Soft Drink Game - NETWORK</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Exo+2:wght@400;700;900&display=swap');
+:root{
+  --bg:#e0f2fe;--surf:#0e1c2f;--surf2:#162438;--surf3:#1d2f45;
+  --brd:#2a3f58;--text:#c8ddf0;--muted:#6b8aab;--accent:#2d9cff;
+  --green:#00e676;--red:#ff4d6d;--yellow:#ffd166;
+  --f:#3b82f6;--d:#22c55e;--w:#f59e0b;--r:#ec4899;
+  --mono:'Share Tech Mono',monospace;--head:'Exo 2',sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:var(--head);min-height:100vh;}
+.hdr{background:#0c4a6e;border-bottom:2px solid var(--accent);padding:10px 20px;display:flex;align-items:center;gap:14px;position:sticky;top:0;z-index:50;}
+.logo{font-family:var(--mono);font-weight:700;font-size:15px;color:#7dd3fc;letter-spacing:4px;}
+.hdr-title{font-weight:900;font-size:15px;text-transform:uppercase;color:#fff;}
+.hdr-right{margin-left:auto;display:flex;gap:8px;align-items:center;}
+.hdr-timer{font-family:var(--mono);font-size:20px;font-weight:700;color:var(--yellow);}
+.hdr-week{background:var(--accent);color:#fff;border-radius:4px;padding:3px 12px;font-size:13px;font-weight:900;font-family:var(--mono);}
+.hdr-badge{background:var(--surf2);border:1px solid var(--brd);border-radius:4px;padding:3px 10px;font-size:11px;color:var(--muted);font-family:var(--mono);}
+.screen{display:none;max-width:960px;margin:0 auto;padding:20px 16px;}
+.screen.active{display:block;}
+.btn{border:none;border-radius:6px;padding:10px 22px;font-weight:700;font-size:13px;cursor:pointer;font-family:var(--head);transition:.15s;}
+.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-p{background:var(--accent);color:#fff;}
+.btn-s{background:var(--green);color:#08111e;}
+.btn-d{background:var(--red);color:#fff;}
+.btn-g{background:transparent;color:var(--muted);border:1px solid var(--brd);}
+.btn-g:hover{border-color:var(--accent);color:var(--accent);}
+.card{background:var(--surf);border:1px solid var(--brd);border-radius:10px;padding:20px;}
+/* FLAG */
+.flag{text-align:center;padding:16px 20px;border-radius:10px;margin-bottom:14px;font-size:24px;font-weight:900;letter-spacing:2px;border:2px solid;}
+.flag-go{background:rgba(0,230,118,.12);border-color:var(--green);color:var(--green);}
+.flag-stop{background:rgba(255,77,109,.12);border-color:var(--red);color:var(--red);}
+.flag-wait{background:rgba(255,209,102,.12);border-color:var(--yellow);color:var(--yellow);}
+/* ENTRY */
+.ew{max-width:480px;margin:60px auto 0;}
+.inp{width:100%;background:var(--surf2);border:1px solid var(--brd);border-radius:7px;padding:12px 14px;color:var(--text);font-size:14px;font-family:var(--head);outline:none;margin-bottom:14px;}
+.inp:focus{border-color:var(--accent);}
+.rg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.rb{padding:14px 10px;border-radius:8px;border:2px solid;cursor:pointer;font-weight:700;font-size:12px;letter-spacing:1px;text-transform:uppercase;background:transparent;transition:.15s;font-family:var(--head);}
+.rb:disabled{opacity:.4;cursor:not-allowed;}
+.rb.f{border-color:var(--f);color:var(--f);} .rb.f:not(:disabled):hover{background:var(--f);color:#fff;}
+.rb.d{border-color:var(--d);color:var(--d);} .rb.d:not(:disabled):hover{background:var(--d);color:#fff;}
+.rb.w{border-color:var(--w);color:var(--w);} .rb.w:not(:disabled):hover{background:var(--w);color:#fff;}
+.rb.r{border-color:var(--r);color:var(--r);} .rb.r:not(:disabled):hover{background:var(--r);color:#fff;}
+.dor{display:flex;align-items:center;gap:10px;margin:12px 0;color:var(--muted);font-size:11px;}
+.dor::before,.dor::after{content:'';flex:1;height:1px;background:var(--brd);}
+/* WAIT */
+.pg{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:16px 0;}
+.ps{border:2px solid var(--brd);border-radius:8px;padding:14px;text-align:center;}
+.ps.on{background:var(--surf2);}
+/* STATION */
+.sd{display:flex;flex-direction:column;align-items:center;padding:10px 0;}
+.av{width:68px;height:68px;border-radius:50%;border:3px solid;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:10px;text-align:center;line-height:1.2;text-transform:uppercase;padding:6px;margin-bottom:14px;font-family:var(--mono);}
+.dr{display:flex;align-items:center;gap:10px;width:100%;}
+.dc{display:flex;flex-direction:column;align-items:center;gap:6px;min-width:62px;}
+.dt{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;text-align:center;margin-bottom:2px;font-family:var(--mono);}
+.ds{width:54px;height:40px;background:var(--surf2);border:1px solid var(--brd);border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700;font-size:17px;}
+.ah{font-size:20px;color:var(--muted);}
+.sb{flex:1;background:var(--surf2);border:2.5px solid;border-radius:10px;padding:14px;min-width:200px;}
+.ft,.fb{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.ft{margin-bottom:12px;}.fb{margin-top:12px;}
+.fc{background:var(--surf3);border-radius:6px;padding:9px;text-align:center;}
+.fl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;}
+.fd{font-size:9px;color:var(--muted);margin-bottom:4px;}
+.fv{font-family:var(--mono);font-weight:700;font-size:19px;color:var(--text);}
+.fv.hl{color:var(--yellow);}
+.sc{text-align:center;padding:8px 0;}
+.sn{font-size:18px;font-weight:900;letter-spacing:3px;text-transform:uppercase;}
+.sk{display:flex;gap:14px;justify-content:center;margin-top:8px;flex-wrap:wrap;}
+.kl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;}
+.kv{font-family:var(--mono);font-weight:700;font-size:17px;margin-top:1px;color:var(--text);}
+.kv.dg{color:var(--red);}.kv.co{color:var(--yellow);}
+/* ORDER */
+.op{background:var(--surf);border:1px solid var(--brd);border-radius:10px;padding:18px;margin-top:16px;text-align:center;}
+.oi{width:110px;background:var(--surf2);border:2px solid var(--brd);border-radius:7px;padding:10px;color:var(--text);font-size:28px;font-family:var(--mono);font-weight:700;text-align:center;outline:none;}
+.oi:focus{border-color:var(--accent);}
+.mb{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-top:12px;}
+.mc{border-radius:20px;padding:4px 12px;font-size:11px;font-weight:700;border:1px solid;letter-spacing:.5px;}
+/* INST */
+.ig{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:16px;}
+@media(max-width:600px){.ig{grid-template-columns:1fr;}.rg{grid-template-columns:1fr 1fr;}}
+.ic{background:var(--surf);border:1px solid var(--brd);border-radius:10px;padding:16px;}
+.ict{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;margin-bottom:12px;}
+.sr{background:var(--surf2);border-radius:6px;padding:10px 12px;display:flex;justify-content:space-between;align-items:center;margin-bottom:7px;border-left:3px solid;}
+.tp{background:var(--surf2);border:1px solid var(--brd);border-radius:5px;padding:7px 13px;font-size:12px;font-weight:700;cursor:pointer;color:var(--text);font-family:var(--head);}
+.tp:hover{border-color:var(--accent);color:var(--accent);}
+.ts{border-color:var(--accent);color:var(--accent);background:rgba(45,156,255,.1);}
+.di{width:72px;background:var(--surf2);border:1px solid var(--brd);border-radius:5px;padding:8px;color:var(--text);font-size:16px;font-family:var(--mono);font-weight:700;text-align:center;outline:none;}
+.di:focus{border-color:var(--accent);}
+.wt{font-family:var(--mono);font-size:52px;font-weight:900;text-align:center;padding:10px;border-radius:8px;letter-spacing:4px;color:var(--green);}
+/* MODAL */
+.mb2{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:flex;align-items:center;justify-content:center;}
+.mx{background:var(--surf);border:1px solid var(--brd);border-radius:12px;padding:28px;min-width:300px;text-align:center;}
+/* BULLWHIP */
+.bw-cw{position:relative;height:220px;}
+.rt{width:100%;border-collapse:collapse;font-size:11px;}
+.rt th{color:var(--muted);text-align:left;padding:5px 8px;border-bottom:1px solid var(--brd);font-size:9px;text-transform:uppercase;}
+.rt td{padding:6px 8px;border-bottom:1px solid rgba(42,63,88,.4);font-family:var(--mono);}
+.rb2{display:inline-block;padding:2px 8px;border-radius:10px;font-weight:700;font-size:11px;}
+.ht{width:100%;border-collapse:collapse;font-family:var(--mono);font-size:11px;margin-top:8px;}
+.ht th{color:var(--muted);text-align:left;padding:4px 8px;border-bottom:1px solid var(--brd);font-size:9px;text-transform:uppercase;}
+.ht td{padding:4px 8px;border-bottom:1px solid rgba(42,63,88,.4);}
+::-webkit-scrollbar{width:5px;} ::-webkit-scrollbar-thumb{background:var(--brd);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <span class="logo">KEEPLEAN</span>
+  <span class="hdr-title">🥤 Soft Drink Game - NETWORK</span>
+  <div class="hdr-right">
+    <button id="btn-bw" onclick="toggleBW()" style="display:none;background:rgba(255,209,102,.15);border:1px solid var(--yellow);color:var(--yellow);border-radius:5px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--head);">📊 BULLWHIP</button>
+    <span class="hdr-timer" id="hdr-timer" style="display:none">00:00</span>
+    <span class="hdr-week" id="hdr-week" style="display:none">W1</span>
+    <span class="hdr-badge" id="hdr-badge">Not connected</span>
+  </div>
+</div>
+
+<!-- ENTRY -->
+<div class="screen active" id="s-entry">
+  <div class="ew">
+    <div style="text-align:center;margin-bottom:28px;">
+      <div style="font-size:22px;font-weight:900;letter-spacing:2px;color:var(--accent);">🥤 SOFT DRINK CONSUMER GAME</div>
+      <div style="font-size:12px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-top:4px;">Supply Chain Simulator · Network Edition</div>
+    </div>
+    <div class="card">
+      <input class="inp" id="inp-name" placeholder="Your name..." maxlength="20" autocomplete="off"/>
+      <div class="rg">
+        <button class="rb f" data-role="factory"     onclick="joinAs('factory')">🏭 Factory</button>
+        <button class="rb d" data-role="distributor" onclick="joinAs('distributor')">🚚 Distributor</button>
+        <button class="rb w" data-role="wholesaler"  onclick="joinAs('wholesaler')">🏪 Wholesaler</button>
+        <button class="rb r" data-role="retailer"    onclick="joinAs('retailer')">🛒 Retailer</button>
+      </div>
+      <div class="dor">OR</div>
+      <button class="btn btn-g" style="width:100%" onclick="showPin()">🎓 Join as Instructor</button>
+      <div style="font-size:12px;color:var(--red);text-align:center;margin-top:8px;min-height:18px;" id="entry-msg"></div>
+    </div>
+  </div>
+</div>
+
+<!-- WAITING -->
+<div class="screen" id="s-wait">
+  <div class="card" style="margin-top:30px;max-width:500px;margin-inline:auto;text-align:center;">
+    <div style="font-size:20px;font-weight:900;margin-bottom:6px;" id="w-title">⏳ Waiting room</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:20px;" id="w-sub">Share this URL with your team. Each person selects their role.</div>
+    <div class="pg" id="w-pg"></div>
+    <div id="w-inst" style="font-size:12px;color:var(--muted);margin-bottom:14px;"></div>
+    <div id="w-act"></div>
+  </div>
+</div>
+
+<!-- PLAYER -->
+<div class="screen" id="s-player">
+  <div id="flag-banner" class="flag flag-wait" style="margin-top:16px;">🟡 &nbsp; WAITING FOR INSTRUCTOR...</div>
+  <div id="station-wrap"></div>
+  <div class="op">
+    <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:12px;">
+      📦 Your order this week → <span id="order-dest">upstream</span>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:center;align-items:center;">
+      <input class="oi" type="number" id="order-inp" min="0" max="999" value="0"/>
+      <button class="btn btn-s" id="btn-submit" onclick="submitOrder()" disabled style="font-size:18px;padding:16px 32px;">✓ Submit</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);font-style:italic;margin-top:10px;min-height:18px;" id="order-msg"></div>
+    <div class="mb" id="mini-bar"></div>
+  </div>
+  <details style="margin-top:12px;">
+    <summary style="cursor:pointer;font-size:11px;color:var(--muted);text-transform:uppercase;">📋 My history</summary>
+    <div class="card" style="margin-top:8px;overflow-x:auto;" id="hist-wrap"></div>
+  </details>
+</div>
+
+<!-- INSTRUCTOR -->
+<div class="screen" id="s-inst">
+  <div style="display:flex;gap:10px;margin-top:16px;">
+    <button class="btn btn-d" style="font-size:11px;padding:6px 14px;" onclick="resetSession()">↺ Reset session</button>
+  </div>
+
+  <!-- SETUP -->
+  <div id="inst-setup" class="card" style="margin-top:12px;">
+    <div class="ict">⚙️ Session configuration</div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">⏱ Duration per week</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="dur-btns">
+        <button class="tp" onclick="setDur(1,this)">1 min</button>
+        <button class="tp ts" onclick="setDur(2,this)">2 min</button>
+        <button class="tp" onclick="setDur(3,this)">3 min</button>
+        <button class="tp" onclick="setDur(4,this)">4 min</button>
+      </div>
+      <div style="font-size:11px;color:var(--accent);margin-top:6px;">Selected: <strong id="dur-lbl">2 min / week</strong></div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">📦 Initial customer demand</div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <input class="di" type="number" id="init-demand" value="4" min="1" max="99"/>
+        <span style="font-size:12px;color:var(--muted);">units / week</span>
+      </div>
+    </div>
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;">🔄 Number of weeks</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" id="wk-btns">
+        <button class="tp" onclick="setNW(5,this)">5</button>
+        <button class="tp" onclick="setNW(10,this)">10</button>
+        <button class="tp ts" onclick="setNW(15,this)">15</button>
+        <button class="tp" onclick="setNW(20,this)">20</button>
+        <button class="tp" onclick="setNW(99,this)">∞</button>
+      </div>
+    </div>
+    <button class="btn btn-s" style="font-size:16px;padding:14px 34px;" onclick="startGame()">🚀 Start Game</button>
+  </div>
+
+  <!-- CONTROLS -->
+  <div id="inst-ctrl" style="display:none;">
+    <!-- Big week timer -->
+    <div class="ic" style="margin-top:12px;text-align:center;">
+      <div class="ict">⏱ Week <span id="i-wk">1</span> timer</div>
+      <div class="wt" id="i-timer">02:00</div>
+      <div style="display:flex;gap:8px;justify-content:center;margin-top:12px;flex-wrap:wrap;">
+        <button class="tp" id="btn-pause" onclick="togglePause()">⏸ Pause</button>
+        <button class="tp" onclick="addSec(30)">+30s</button>
+        <button class="tp" onclick="addSec(60)">+1 min</button>
+      </div>
+    </div>
+
+    <div class="ig">
+      <!-- Demand + advance -->
+      <div class="ic">
+        <div class="ict">📦 Demand — Week <span id="i-wk2">1</span></div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <input class="di" type="number" id="i-demand" value="4" min="1" max="999"/>
+          <span style="font-size:12px;color:var(--muted);">units for next week</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px;" id="i-orders">Orders: 0/4 ⌛</div>
+        <button class="btn btn-s" id="btn-adv" onclick="advanceWeek()" style="font-size:16px;padding:14px 28px;width:100%;">
+          ▶ Validate &amp; Start Week <span id="i-nw">2</span>
+        </button>
+        <div style="font-size:11px;color:var(--yellow);margin-top:8px;" id="i-hint"></div>
+      </div>
+
+      <!-- Flag -->
+      <div class="ic" style="text-align:center;">
+        <div class="ict">🚩 Order flag</div>
+        <div id="i-flag" class="flag flag-go" style="font-size:20px;padding:14px;margin-bottom:10px;">🟢 GO — Players can order</div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.7;margin-bottom:12px;">
+          🟢 <b>GO</b> = Week running, orders open<br>
+          🔴 <b>STOP</b> = Between weeks
+        </div>
+        <button class="btn btn-d" style="font-size:11px;" onclick="endSession()">■ End session</button>
+      </div>
+    </div>
+
+    <div class="ic" style="margin-top:14px;">
+      <div class="ict">📊 All stages — Week <span id="i-wk3">1</span></div>
+      <div id="i-stages"></div>
+    </div>
+    <div class="ic" style="margin-top:14px;">
+      <div class="ict">📈 Demand history</div>
+      <div id="i-dhist" style="font-family:var(--mono);font-size:12px;color:var(--muted);"></div>
+    </div>
+  </div>
+
+  <div class="ic" style="margin-top:14px;">
+    <div class="ict">👥 Connected players</div>
+    <div class="pg" id="i-players"></div>
+    <div id="i-inst-row" style="font-size:12px;color:var(--muted);margin-top:8px;"></div>
+  </div>
+</div>
+
+<!-- BULLWHIP -->
+<div class="screen" id="s-bw">
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+    <span style="font-size:22px;">📊</span>
+    <span style="font-size:18px;font-weight:900;text-transform:uppercase;color:var(--yellow);">Bullwhip Effect Analysis</span>
+    <button class="tp" style="margin-left:auto;" onclick="toggleBW()">✕ Close</button>
+  </div>
+  <div class="card" style="margin-bottom:14px;">
+    <div class="ict">📐 Formula</div>
+    <div style="background:var(--surf2);border-radius:6px;padding:10px 14px;font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.8;">
+      <b style="color:var(--accent)">Bullwhip Ratio</b> = σ²(upstream) / σ²(downstream) &nbsp;|&nbsp;
+      <span style="color:var(--green)">Ratio &gt; 1</span> = amplification &nbsp;|&nbsp;
+      <span style="color:var(--red)">Ratio &lt; 1</span> = dampening
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+    <div class="ic"><div class="ict">📋 Variance & Ratios</div><div id="bw-tbl"></div></div>
+    <div class="ic"><div class="ict">📊 Bar Chart</div><div class="bw-cw"><canvas id="bw-bar"></canvas></div></div>
+  </div>
+  <div class="ic"><div class="ict">📈 Orders Over Time</div><div style="position:relative;height:260px;"><canvas id="bw-line"></canvas></div></div>
+</div>
+
+<!-- PIN MODAL -->
+<div class="mb2" id="pin-modal" style="display:none;">
+  <div class="mx">
+    <div style="font-size:17px;font-weight:900;margin-bottom:16px;">🎓 Instructor access</div>
+    <input class="inp" type="password" id="pin-inp" placeholder="PIN..." style="text-align:center;letter-spacing:6px;font-size:22px;font-family:var(--mono)"/>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:4px;">
+      <button class="btn btn-g" onclick="hidePin()">Cancel</button>
+      <button class="btn btn-p" onclick="checkPin()">Enter →</button>
+    </div>
+    <div style="font-size:12px;color:var(--red);margin-top:10px;min-height:18px;" id="pin-msg"></div>
+  </div>
+</div>
+
+<script>
+const PIN='2025';
+const ROLES=['factory','distributor','wholesaler','retailer'];
+const RL={factory:'Factory',distributor:'Distributor',wholesaler:'Wholesaler',retailer:'Retailer'};
+const RC={factory:'#3b82f6',distributor:'#22c55e',wholesaler:'#f59e0b',retailer:'#ec4899'};
+const RE={factory:'🏭',distributor:'🚚',wholesaler:'🏪',retailer:'🛒'};
+const UL={retailer:'Wholesaler',wholesaler:'Distributor',distributor:'Factory',factory:'Production'};
+const DL={factory:'Distributor',distributor:'Wholesaler',wholesaler:'Retailer',retailer:'Customer'};
+const FB='https://keeplean-beergame-default-rtdb.europe-west1.firebasedatabase.app/session.json';
+const NO=-1;
+
+let role=null,name='',gs=null,pid=null,sdur=2,snw=15;
+let bwOn=false,bwPrev='s-entry',bwBar=null,bwLine=null;
+
+async function fbGet(){try{const r=await fetch(FB+'?t='+Date.now());return r.ok?await r.json():null;}catch{return null;}}
+async function fbSet(s){try{gs=s;await fetch(FB,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(s)});return true;}catch{return false;}}
+async function fbDel(){try{await fetch(FB,{method:'DELETE'});}catch{}}
+
+function mkStage(){return{inventory:12,backlog:0,p0:4,p1:4,inOrd:0,order:NO,cost:0,hist:[]};}
+function mkGame(){return{week:1,phase:'waiting',wdur:sdur,nw:snw,wend:0,wpause:0,paused:false,flag:'stop',
+  instructor:'',players:{factory:'',distributor:'',wholesaler:'',retailer:''},
+  stages:{factory:mkStage(),distributor:mkStage(),wholesaler:mkStage(),retailer:mkStage()},
+  demands:[],created:Date.now()};}
+
+function toOrd(v){return(v===NO||v<0||v==null)?0:Number(v);}
+
+function processWeek(s,demand){
+  const g=JSON.parse(JSON.stringify(s));
+  const w=g.week;
+  const io={retailer:demand,wholesaler:toOrd(g.stages.retailer.order),
+    distributor:toOrd(g.stages.wholesaler.order),factory:toOrd(g.stages.distributor.order)};
+  ROLES.forEach(r=>{g.stages[r].inOrd=io[r];});
+  const rcv={};
+  ROLES.forEach(r=>{rcv[r]=g.stages[r].p0;g.stages[r].inventory+=rcv[r];g.stages[r].p0=g.stages[r].p1;g.stages[r].p1=0;});
+  const shp={};
+  ROLES.forEach(r=>{const st=g.stages[r];const n=st.backlog+io[r];const sh=Math.min(st.inventory,n);st.inventory-=sh;st.backlog=n-sh;shp[r]=sh;});
+  g.stages.retailer.p1=shp.wholesaler;
+  g.stages.wholesaler.p1=shp.distributor;
+  g.stages.distributor.p1=shp.factory;
+  g.stages.factory.p1=toOrd(g.stages.factory.order);
+  ROLES.forEach(r=>{
+    const st=g.stages[r];const wk=st.inventory*0.5+st.backlog*1.0;st.cost+=wk;
+    if(!st.hist)st.hist=[];
+    st.hist.push({w,rcv:rcv[r],shp:shp[r],io:io[r],ord:toOrd(st.order),inv:st.inventory,bkl:st.backlog,cost:wk});
+    st.order=NO;
+  });
+  if(!g.demands)g.demands=[];
+  g.demands.push(demand);
+  g.week=w+1;
+  g.wend=Date.now()+g.wdur*60000;
+  g.wpause=0;g.paused=false;g.flag='go';
+  if(g.nw!==99&&g.week>g.nw){g.phase='ended';g.flag='stop';}
+  return g;
+}
+
+function ss(id){document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));document.getElementById(id)?.classList.add('active');}
+function se(id,h){const e=document.getElementById(id);if(e)e.innerHTML=h;}
+function st(id,t){const e=document.getElementById(id);if(e)e.textContent=t;}
+function fm(ms){if(ms<=0)return'00:00';const s=Math.floor(ms/1000),m=Math.floor(s/60),sc=s%60;return String(m).padStart(2,'0')+':'+String(sc).padStart(2,'0');}
+function wms(g){if(!g)return 0;if(g.paused)return g.wpause||0;if(g.wend)return Math.max(0,g.wend-Date.now());return(g.wdur||2)*60000;}
+function ho(r){if(!gs?.stages?.[r])return false;const o=gs.stages[r].order;return o!==NO&&o!==null&&o!==undefined&&Number(o)>=0;}
+function pslot(r){const n=gs?.players?.[r]||'';const c=RC[r];const ok=!!n;
+  return`<div class="ps ${ok?'on':''}" style="border-color:${ok?c:'var(--brd)'}">
+    <div style="font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:4px;color:${c}">${RE[r]} ${RL[r]}</div>
+    <div style="font-size:17px;font-weight:900;">${n||'—'}</div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px;">${ok?'🟢 Connected':'⌛ Waiting...'}</div>
+  </div>`;}
+
+async function joinAs(r){
+  const n=document.getElementById('inp-name').value.trim();
+  if(!n){st('entry-msg','⚠ Please enter your name first.');return;}
+  let g=await fbGet()||mkGame();
+  if(g.phase!=='waiting'){st('entry-msg','⚠ Session already in progress.');return;}
+  if(g.players[r]){st('entry-msg',`⚠ ${RL[r]} is taken by ${g.players[r]}.`);return;}
+  g.players[r]=n;await fbSet(g);
+  role=r;name=n;startPoll();ss('s-wait');renderWait();
+}
+function showPin(){document.getElementById('pin-modal').style.display='flex';document.getElementById('pin-inp').focus();}
+function hidePin(){document.getElementById('pin-modal').style.display='none';}
+function checkPin(){
+  if(document.getElementById('pin-inp').value===PIN){
+    hidePin();role='instructor';name=document.getElementById('inp-name').value.trim()||'Instructor';joinInst();
+  }else{se('pin-msg','❌ Wrong PIN');}
+}
+async function joinInst(){let g=await fbGet()||mkGame();g.instructor=name;await fbSet(g);startPoll();ss('s-inst');renderInst();}
+
+function setDur(m,b){sdur=m;document.querySelectorAll('#dur-btns .tp').forEach(x=>x.classList.remove('ts'));b?.classList.add('ts');st('dur-lbl',`${m} min / week`);}
+function setNW(n,b){snw=n;document.querySelectorAll('#wk-btns .tp').forEach(x=>x.classList.remove('ts'));b?.classList.add('ts');}
+
+async function startGame(){
+  let g=await fbGet()||mkGame();
+  const d=parseInt(document.getElementById('init-demand').value)||4;
+  g.phase='playing';g.wdur=sdur;g.nw=snw;
+  g.wend=Date.now()+sdur*60000;g.wpause=0;g.paused=false;g.flag='go';g.demands=[];
+  ROLES.forEach(r=>{g.stages[r].inOrd=r==='retailer'?d:0;});
+  await fbSet(g);renderInst();
+}
+async function togglePause(){
+  let g=await fbGet();if(!g)return;
+  if(g.paused){g.wend=Date.now()+(g.wpause||0);g.wpause=0;g.paused=false;g.phase='playing';}
+  else{g.wpause=Math.max(0,g.wend-Date.now());g.paused=true;g.phase='paused';}
+  await fbSet(g);
+}
+async function addSec(s){let g=await fbGet();if(!g)return;if(g.paused)g.wpause=(g.wpause||0)+s*1000;else g.wend=(g.wend||Date.now())+s*1000;await fbSet(g);}
+async function advanceWeek(){
+  let g=await fbGet();if(!g)return;
+  g.flag='stop';await fbSet(g);
+  const d=parseInt(document.getElementById('i-demand').value)||0;
+  const ng=processWeek(g,d);await fbSet(ng);renderInst();
+}
+async function endSession(){if(!confirm('End the session?'))return;let g=await fbGet();if(!g)return;g.phase='ended';g.flag='stop';await fbSet(g);renderInst();}
+async function resetSession(){
+  if(!confirm('Reset all session data?'))return;
+  await fbDel();gs=null;
+  ROLES.forEach(r=>{const b=document.querySelector(`[data-role="${r}"]`);if(b){b.disabled=false;b.innerHTML=`${RE[r]} ${RL[r]}`;}}); 
+  role=null;name='';if(pid){clearInterval(pid);pid=null;}
+  ss('s-entry');updateHdr(null);
+}
+async function submitOrder(){
+  const v=parseInt(document.getElementById('order-inp').value);
+  if(isNaN(v)||v<0){se('order-msg','⚠ Enter a valid quantity (≥ 0)');return;}
+  let g=await fbGet();if(!g)return;
+  g.stages[role].order=v;await fbSet(g);
+  document.getElementById('order-inp').disabled=true;
+  document.getElementById('btn-submit').disabled=true;
+  se('order-msg',`✅ Submitted: <strong>${v}</strong> units — waiting for instructor.`);
+}
+
+function renderWait(){
+  if(!gs)return;
+  se('w-pg',ROLES.map(pslot).join(''));
+  se('w-inst',gs.instructor?`🎓 Instructor: <strong>${gs.instructor}</strong>`:'🎓 Instructor: not yet connected');
+  if(role==='instructor')se('w-act',`<button class="btn btn-p" onclick="ss('s-inst');renderInst()">→ Open Instructor Panel</button>`);
+}
+
+function renderFlag(flag){
+  const el=document.getElementById('flag-banner');if(!el)return;
+  el.className='flag';
+  const btn=document.getElementById('btn-submit');
+  const inp=document.getElementById('order-inp');
+  if(flag==='go'){
+    el.classList.add('flag-go');el.innerHTML='🟢 &nbsp; GO — Submit your order now!';
+    if(!ho(role)){if(btn)btn.disabled=false;if(inp)inp.disabled=false;}
+  }else if(flag==='stop'){
+    el.classList.add('flag-stop');el.innerHTML='🔴 &nbsp; STOP — Wait for next week...';
+    if(btn)btn.disabled=true;if(inp)inp.disabled=true;
+  }else{
+    el.classList.add('flag-wait');el.innerHTML='🟡 &nbsp; Waiting for instructor...';
+    if(btn)btn.disabled=true;
+  }
+}
+
+function renderStation(){
+  if(!gs||!role||role==='instructor')return;
+  const st2=gs.stages[role];const c=RC[role];
+  const ordered=ho(role);
+  const ls=st2.hist?.length?st2.hist[st2.hist.length-1].shp:'—';
+  renderFlag(gs.flag||'stop');
+  document.getElementById('station-wrap').innerHTML=`
+    <div class="sd">
+      <div class="av" style="border-color:${c};color:${c};">${name}</div>
+      <div class="dr">
+        <div class="dc">
+          <div class="dt">← ${UL[role]}</div>
+          <div class="ds">${st2.p0}</div><div class="ds">${st2.p1}</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:4px;text-align:center;">DELAY</div>
+        </div>
+        <div class="ah">←</div>
+        <div class="sb" style="border-color:${c}">
+          <div class="ft">
+            <div class="fc">
+              <div class="fl">↑ Outgoing order</div><div class="fd">→ ${UL[role]}</div>
+              <div class="fv">${ordered?st2.order:'?'}</div>
+            </div>
+            <div class="fc" style="border:1px solid ${c}66">
+              <div class="fl">↓ Incoming order</div><div class="fd">← ${DL[role]}</div>
+              <div class="fv hl">${st2.inOrd||0}</div>
+            </div>
+          </div>
+          <div class="sc">
+            <div class="sn" style="color:${c}">${RL[role]}</div>
+            <div class="sk">
+              <div><div class="kl">Inventory</div><div class="kv">${st2.inventory}</div></div>
+              <div><div class="kl">Backlog</div><div class="kv ${st2.backlog>0?'dg':''}">${st2.backlog}</div></div>
+              <div><div class="kl">Total cost</div><div class="kv co">€${(st2.cost||0).toFixed(1)}</div></div>
+            </div>
+          </div>
+          <div class="fb">
+            <div class="fc">
+              <div class="fl">← Incoming delivery</div><div class="fd">from ${UL[role]}</div>
+              <div class="fv">${st2.p0}</div>
+            </div>
+            <div class="fc">
+              <div class="fl">→ Outgoing delivery</div><div class="fd">to ${DL[role]}</div>
+              <div class="fv">${ls}</div>
+            </div>
+          </div>
+        </div>
+        <div class="ah">→</div>
+        <div class="dc">
+          <div class="dt">${DL[role]} →</div>
+          <div class="ds">${ls}</div><div class="ds">—</div>
+          <div style="font-size:9px;color:var(--muted);margin-top:4px;text-align:center;">DELAY</div>
+        </div>
+      </div>
+    </div>`;
+  st('order-dest',UL[role]);
+  if(ordered){document.getElementById('order-inp').disabled=true;document.getElementById('btn-submit').disabled=true;se('order-msg',`✅ Submitted: <strong>${st2.order}</strong> units.`);}
+  else if(gs.flag==='go'){document.getElementById('order-inp').disabled=false;document.getElementById('btn-submit').disabled=false;se('order-msg','');}
+  else se('order-msg','');
+  const bar=ROLES.map(r=>{
+    const n=gs.players?.[r];if(!n)return'';
+    const d=ho(r);const c=RC[r];
+    return`<span class="mc" style="border-color:${c};color:${d?'#fff':'var(--muted)'};background:${d?c:'transparent'}">${RE[r]} ${n} ${d?'✓':'…'}</span>`;
+  }).join('');
+  se('mini-bar',bar);
+  if(st2.hist?.length){
+    const rows=[...st2.hist].reverse().map(h=>`<tr><td>W${h.w}</td><td>${h.io}</td><td>+${h.rcv}</td><td>${h.shp}</td><td>${h.inv}</td><td style="color:${h.bkl>0?'var(--red)':'inherit'}">${h.bkl}</td><td>${h.ord}</td><td style="color:var(--yellow)">€${h.cost.toFixed(1)}</td></tr>`).join('');
+    se('hist-wrap',`<table class="ht"><thead><tr><th>Wk</th><th>In</th><th>Rcv</th><th>Shp</th><th>Inv</th><th>Bkl</th><th>Ord</th><th>Cost</th></tr></thead><tbody>${rows}</tbody></table>`);
+  }
+}
+
+function renderInst(){
+  if(!gs)return;
+  const playing=gs.phase==='playing'||gs.phase==='paused';
+  const ended=gs.phase==='ended';
+  document.getElementById('inst-setup').style.display=playing||ended?'none':'block';
+  document.getElementById('inst-ctrl').style.display=playing||ended?'block':'none';
+  se('i-players',ROLES.map(pslot).join(''));
+  se('i-inst-row',`🎓 Instructor: <strong>${gs.instructor||'—'}</strong>`);
+  if(!playing&&!ended)return;
+  const w=gs.week||1;
+  ['i-wk','i-wk2','i-wk3'].forEach(id=>se(id,w));
+  se('i-nw',w+1);
+  se('btn-pause',gs.paused?'▶ Resume':'⏸ Pause');
+  const ms=wms(gs);
+  const te=document.getElementById('i-timer');
+  if(te){te.textContent=fm(ms);te.style.color=gs.paused?'var(--muted)':ms<30000?'var(--red)':ms<60000?'var(--yellow)':'var(--green)';}
+  const fl=document.getElementById('i-flag');
+  if(fl){fl.className='flag';if(gs.flag==='go'){fl.classList.add('flag-go');fl.innerHTML='🟢 GO — Players can order';}else{fl.classList.add('flag-stop');fl.innerHTML='🔴 STOP — Between weeks';}}
+  const need=ROLES.filter(r=>gs.players?.[r]).length;
+  const rcv=ROLES.filter(r=>gs.players?.[r]&&ho(r)).length;
+  const all=rcv===need&&need>0;
+  se('i-orders',`Orders received: ${rcv}/${need} ${all?'✅ All ready!':'⌛'}`);
+  se('i-hint',all?'All orders in — you can validate!':'Waiting for remaining orders...');
+  const sh=ROLES.map(r=>{
+    const s=gs.stages?.[r];if(!s)return'';const c=RC[r];
+    const os=ho(r)?`<span style="color:var(--green)">✓ Order: ${gs.stages[r].order}</span>`:`<span style="color:var(--yellow)">⌛</span>`;
+    return`<div class="sr" style="border-color:${c}">
+      <div><div style="font-weight:700;font-size:13px;color:${c}">${RE[r]} ${RL[r]} — ${gs.players?.[r]||'(empty)'}</div>
+      <div style="font-size:10px;color:var(--muted);font-family:var(--mono)">Pipeline:[${s.p0},${s.p1}] In:${s.inOrd||0}</div></div>
+      <div style="text-align:right;font-family:var(--mono)">
+        <div style="font-weight:700;font-size:13px">📦${s.inventory} ❌${s.backlog}</div>
+        <div style="font-size:11px">${os} €${(s.cost||0).toFixed(1)}</div>
+      </div></div>`;
+  }).join('');
+  se('i-stages',sh);
+  se('i-dhist',(gs.demands||[]).map((d,i)=>`W${i+1}:${d}`).join('  ')||'—');
+}
+
+function updateHdr(g){
+  const ph=g?.phase||'';
+  se('hdr-badge',ph?ph.toUpperCase():'Not connected');
+  const pl=ph==='playing'||ph==='paused'||ph==='ended';
+  const bw=document.getElementById('btn-bw');
+  const ht=document.getElementById('hdr-timer');
+  const hw=document.getElementById('hdr-week');
+  if(bw)bw.style.display=pl?'block':'none';
+  if(pl&&g){ht.style.display='block';hw.style.display='block';se('hdr-week',`W${g.week||1}`);const ms=wms(g);ht.textContent=fm(ms);ht.style.color=g.paused?'var(--muted)':ms<30000?'var(--red)':'var(--yellow)';}
+  else{ht.style.display='none';hw.style.display='none';}
+}
+
+function route(g){
+  if(!g||!role||role==='instructor')return;
+  const ph=g.phase;
+  if(ph==='waiting'){ss('s-wait');renderWait();}
+  else if(ph==='playing'||ph==='paused'){ss('s-player');renderStation();}
+  else if(ph==='ended'){ss('s-wait');se('w-title','🏁 Session ended — Thank you!');se('w-sub','The instructor has closed the session.');se('w-pg',ROLES.map(pslot).join(''));se('w-act','');}
+}
+
+function startPoll(){if(pid)clearInterval(pid);poll();pid=setInterval(poll,2000);}
+async function poll(){const g=await fbGet();if(!g)return;gs=g;updateHdr(g);if(role==='instructor'){renderInst();return;}route(g);}
+
+// BULLWHIP
+function toggleBW(){
+  bwOn=!bwOn;
+  if(bwOn){['s-entry','s-wait','s-player','s-inst'].forEach(id=>{if(document.getElementById(id)?.classList.contains('active'))bwPrev=id;});ss('s-bw');renderBW();}
+  else ss(bwPrev);
+}
+function vr(a){if(!a||a.length<2)return 0;const m=a.reduce((a,b)=>a+b,0)/a.length;return a.reduce((s,x)=>s+(x-m)**2,0)/a.length;}
+function renderBW(){
+  if(!gs)return;
+  const ords={customer:gs.demands||[],retailer:(gs.stages?.retailer?.hist||[]).map(h=>h.ord),wholesaler:(gs.stages?.wholesaler?.hist||[]).map(h=>h.ord),distributor:(gs.stages?.distributor?.hist||[]).map(h=>h.ord),factory:(gs.stages?.factory?.hist||[]).map(h=>h.ord)};
+  const vs={};Object.keys(ords).forEach(k=>{vs[k]=vr(ords[k]);});
+  const pairs=[{l:'Cust→Retail',d:'customer',u:'retailer'},{l:'Retail→Whole',d:'retailer',u:'wholesaler'},{l:'Whole→Distrib',d:'wholesaler',u:'distributor'},{l:'Distrib→Factory',d:'distributor',u:'factory'}];
+  const rows=pairs.map(p=>{const r=vs[p.d]>0?vs[p.u]/vs[p.d]:(vs[p.u]>0?5:1);const c=r>2?'#ff4d6d':r>1?'#ffd166':'#00e676';
+    return`<tr><td style="color:var(--text)">${p.l}</td><td>${vs[p.d].toFixed(1)}</td><td>${vs[p.u].toFixed(1)}</td><td><span class="rb2" style="background:${c}22;color:${c};border:1px solid ${c}55">${r.toFixed(2)}</span></td></tr>`;}).join('');
+  se('bw-tbl',`<table class="rt"><thead><tr><th>Pair</th><th>σ²↓</th><th>σ²↑</th><th>Ratio</th></tr></thead><tbody>${rows}</tbody></table>`);
+  const dk=matchMedia('(prefers-color-scheme:dark)').matches;
+  const gc=dk?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.06)';const tc=dk?'#94a3b8':'#64748b';
+  const rats=pairs.map(p=>vs[p.d]>0?parseFloat((vs[p.u]/vs[p.d]).toFixed(2)):1);
+  const bc=rats.map(v=>v>2?'#ff4d6d55':v>1.5?'#ffd16655':'#00e67655');
+  const brd=rats.map(v=>v>2?'#ff4d6d':v>1.5?'#ffd166':'#00e676');
+  if(bwBar){bwBar.destroy();bwBar=null;}
+  bwBar=new Chart(document.getElementById('bw-bar'),{type:'bar',data:{labels:pairs.map(p=>p.l),datasets:[{data:rats,backgroundColor:bc,borderColor:brd,borderWidth:1.5,borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:tc,font:{size:9}},grid:{color:gc}},y:{ticks:{color:tc},grid:{color:gc},min:0}}}});
+  const ml=Math.max(...Object.values(ords).map(a=>a.length));if(ml===0)return;
+  const wl=Array.from({length:ml},(_,i)=>`W${i+1}`);
+  const cols={customer:'#94a3b8',retailer:'#ec4899',wholesaler:'#f59e0b',distributor:'#22c55e',factory:'#3b82f6'};
+  const ds=Object.entries(ords).map(([k,v])=>({label:k,data:v,borderColor:cols[k],backgroundColor:cols[k]+'22',borderWidth:2,pointRadius:3,tension:0.3,fill:false}));
+  if(bwLine){bwLine.destroy();bwLine=null;}
+  bwLine=new Chart(document.getElementById('bw-line'),{type:'line',data:{labels:wl,datasets:ds},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:dk?'#c8ddf0':'#334155',font:{size:10},boxWidth:12}}},scales:{x:{ticks:{color:tc},grid:{color:gc}},y:{ticks:{color:tc},grid:{color:gc},min:0}}}});
+}
+
+document.getElementById('pin-inp').addEventListener('keydown',e=>{if(e.key==='Enter')checkPin();});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&role&&role!=='instructor'){const b=document.getElementById('btn-submit');if(b&&!b.disabled)submitOrder();}});
+
+(async()=>{
+  const g=await fbGet();if(!g)return;
+  if(g.phase==='ended'){await fbDel();return;}
+  if(Date.now()-(g.created||0)>4*60*60*1000){await fbDel();return;}
+  ROLES.forEach(r=>{if(g.players?.[r]){const b=document.querySelector(`[data-role="${r}"]`);if(b){b.disabled=true;b.textContent=`${RE[r]} ${g.players[r]}`;}}});
+})();
+</script>
+</body>
+</html>
