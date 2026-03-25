@@ -213,7 +213,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--head);min-height:1
         <button class="tp" onclick="setNW(99,this)">∞</button>
       </div>
     </div>
-    <button class="btn btn-s" style="font-size:16px;padding:14px 34px;" onclick="startGame()">🚀 Start Game</button>
+    <div id="setup-players" style="margin-bottom:16px;padding:10px;background:var(--surf2);border-radius:8px;font-size:12px;font-family:var(--mono);color:var(--muted);"></div>
+    <button class="btn btn-s" style="font-size:16px;padding:14px 34px;" onclick="startGame()" id="btn-start">🚀 Start Game</button>
+    <div id="start-msg" style="font-size:12px;color:var(--yellow);margin-top:8px;min-height:18px;"></div>
   </div>
 
   <!-- CONTROLS -->
@@ -398,14 +400,19 @@ function setDur(m,b){sdur=m;document.querySelectorAll('#dur-btns .tp').forEach(x
 function setNW(n,b){snw=n;document.querySelectorAll('#wk-btns .tp').forEach(x=>x.classList.remove('ts'));b?.classList.add('ts');}
 
 async function startGame(){
-  let g=await fbGet()||gs||mkGame();
+  se('start-msg','⏳ Loading session...');
+  let g=await fbGet();
+  if(!g){se('start-msg','❌ Firebase error — retry');return;}
   const connected=ROLES.filter(r=>g.players?.[r]).length;
-  if(connected===0){alert('⚠ No players connected yet!\nAsk players to join first, then start the game.');return;}
+  if(connected===0){se('start-msg','⚠ No players connected yet!');return;}
   const d=parseInt(document.getElementById('init-demand').value)||4;
   g.phase='playing';g.wdur=sdur;g.nw=snw;
   g.wend=Date.now()+sdur*60000;g.wpause=0;g.paused=false;g.flag='go';g.demands=[];
   ROLES.forEach(r=>{g.stages[r].inOrd=r==='retailer'?d:0;});
-  await fbSet(g);renderInst();
+  const ok=await fbSet(g);
+  if(!ok){se('start-msg','❌ Save failed — retry');return;}
+  se('start-msg','');
+  renderInst();
 }
 async function togglePause(){
   let g=await fbGet();if(!g)return;
@@ -540,6 +547,13 @@ function renderInst(){
   document.getElementById('inst-ctrl').style.display=playing||ended?'block':'none';
   se('i-players',ROLES.map(pslot).join(''));
   se('i-inst-row',`🎓 Instructor: <strong>${gs.instructor||'—'}</strong>`);
+  // Update setup players panel
+  const sp=document.getElementById('setup-players');
+  if(sp){
+    const list=ROLES.map(r=>{const n=gs.players?.[r];const c=RC[r];return`<span style="margin-right:12px;color:${n?c:'var(--muted)'}">${RE[r]} ${n||'waiting...'}</span>`;}).join('');
+    const cnt=ROLES.filter(r=>gs.players?.[r]).length;
+    sp.innerHTML=`👥 Connected: <strong style="color:${cnt>0?'var(--green)':'var(--muted)'}">${cnt}/4</strong> &nbsp;|&nbsp; ${list}`;
+  }
   if(!playing&&!ended)return;
   const w=gs.week||1;
   ['i-wk','i-wk2','i-wk3'].forEach(id=>se(id,w));
@@ -635,4 +649,3 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&role&&role!=='instru
 </script>
 </body>
 </html>
-
