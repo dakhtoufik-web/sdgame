@@ -324,7 +324,14 @@ const NO=-1;
 let role=null,name='',gs=null,pid=null,sdur=2,snw=15;
 let bwOn=false,bwPrev='s-entry',bwBar=null,bwLine=null;
 
-async function fbGet(){try{const r=await fetch(FB+'?t='+Date.now());return r.ok?await r.json():null;}catch{return null;}}
+async function fbGet(){
+  try{
+    const r=await fetch(FB+'?t='+Date.now());
+    if(!r.ok)return {_error:true};
+    const data=await r.json();
+    return data; // can be null (empty session) or object
+  }catch(e){return {_error:true};}
+}
 async function fbSet(s){try{gs=s;await fetch(FB,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(s)});return true;}catch{return false;}}
 async function fbDel(){try{await fetch(FB,{method:'DELETE'});}catch{}}
 async function fbWrite(path,val){try{await fetch(FB.replace('session.json','session/'+path+'.json'),{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(val)});return true;}catch{return false;}}
@@ -412,9 +419,9 @@ function setNW(n,b){snw=n;document.querySelectorAll('#wk-btns .tp').forEach(x=>x
 
 async function startGame(){
   se('start-msg','⏳ Loading session...');
-  let g=null;
-  for(let i=0;i<3;i++){g=await fbGet();if(g)break;await new Promise(r=>setTimeout(r,1000));}
-  if(!g){se('start-msg','❌ Firebase error — please retry');return;}
+  let g=await fbGet();
+  if(g&&g._error){se('start-msg','❌ Firebase unreachable — check connection');return;}
+  if(!g)g=gs||mkGame(); // null = empty session, use local state
   const connected=ROLES.filter(r=>g.players?.[r]).length;
   if(connected===0){se('start-msg','⚠ No players connected yet!');return;}
   const d=parseInt(document.getElementById('init-demand').value)||4;
@@ -617,7 +624,13 @@ function route(g){
 }
 
 function startPoll(){if(pid)clearInterval(pid);poll();pid=setInterval(poll,2000);}
-async function poll(){const g=await fbGet();if(!g)return;gs=g;updateHdr(g);if(role==='instructor'){renderInst();return;}route(g);}
+async function poll(){
+  const g=await fbGet();
+  if(!g||g._error)return; // null=empty session, _error=network issue, skip
+  gs=g;updateHdr(g);
+  if(role==='instructor'){renderInst();return;}
+  route(g);
+}
 
 // BULLWHIP
 function toggleBW(){
