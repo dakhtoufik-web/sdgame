@@ -398,7 +398,9 @@ function setDur(m,b){sdur=m;document.querySelectorAll('#dur-btns .tp').forEach(x
 function setNW(n,b){snw=n;document.querySelectorAll('#wk-btns .tp').forEach(x=>x.classList.remove('ts'));b?.classList.add('ts');}
 
 async function startGame(){
-  let g=await fbGet()||mkGame();
+  let g=await fbGet()||gs||mkGame();
+  const connected=ROLES.filter(r=>g.players?.[r]).length;
+  if(connected===0){alert('⚠ No players connected yet!\nAsk players to join first, then start the game.');return;}
   const d=parseInt(document.getElementById('init-demand').value)||4;
   g.phase='playing';g.wdur=sdur;g.nw=snw;
   g.wend=Date.now()+sdur*60000;g.wpause=0;g.paused=false;g.flag='go';g.demands=[];
@@ -633,3 +635,4 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&role&&role!=='instru
 </script>
 </body>
 </html>
+
